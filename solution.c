@@ -4,6 +4,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "pthread_sleep.c"
+
 #define RANDOM_SEED 42
 
 struct Plane {
@@ -56,29 +58,27 @@ int main (int argc, char *argv[]) {
   pthread_join(atc_tid, NULL);
 
   // create landing plane thread
-  struct Plane landing_plane;
-  pthread_create(&(landing_plane.id), NULL, landing, argv[1]);
-  pthread_join(landing_plane.id, NULL);
+  pthread_t landing_id;
+  pthread_create(&landing_id, NULL, landing, argv[1]);
 
   // create landing plane thread
-  struct Plane departing_plane;
-  pthread_create(&(departing_plane.id), NULL, departing, argv[1]);
-  pthread_join(departing_plane.id, NULL);
+  pthread_t departing_id;
+  pthread_create(&departing_id, NULL, departing, argv[1]);
 
   srand(RANDOM_SEED);
   time_t current_time = time(NULL);
+  printf("Starting simulation.\n");
   while (current_time < start_time + total_sim_time) {
     double random = (rand() / (double) RAND_MAX);
-    printf("%f\n", random);
     if (random <= p) {
-      // create landing plane thread
-      printf("LANDING\n");
+      pthread_t landing_id;
+      pthread_create(&landing_id, NULL, landing, argv[1]);
     }
     if (random <= 1 - p) {
-      // create departing plane thread
-      printf("DEPARTING\n");
+      pthread_t departing_id;
+      pthread_create(&departing_id, NULL, departing, argv[1]);
     }
-    sleep(1);
+    pthread_sleep(1);
     current_time = time(NULL);
   }
 
