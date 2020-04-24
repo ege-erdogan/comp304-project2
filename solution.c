@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
+#include <time.h>
+
+#define RANDOM_SEED 42
 
 struct Plane {
   pthread_t id;
@@ -44,7 +47,7 @@ int main (int argc, char *argv[]) {
       p = atof(argv[4]);
   }
 
-  printf("%d %f\n", total_sim_time, p);
+  time_t start_time = time(NULL);
 
   // create ATC thread
   pthread_t atc_tid;
@@ -62,6 +65,22 @@ int main (int argc, char *argv[]) {
   pthread_create(&(departing_plane.id), NULL, departing, argv[1]);
   pthread_join(departing_plane.id, NULL);
 
+  srand(RANDOM_SEED);
+  time_t current_time = time(NULL);
+  while (current_time < start_time + total_sim_time) {
+    double random = (rand() / (double) RAND_MAX);
+    printf("%f\n", random);
+    if (random <= p) {
+      // create landing plane thread
+      printf("LANDING\n");
+    }
+    if (random <= 1 - p) {
+      // create departing plane thread
+      printf("DEPARTING\n");
+    }
+    sleep(1);
+    current_time = time(NULL);
+  }
 
   return 0;
 }
