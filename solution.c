@@ -3,19 +3,13 @@
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
 #include "pthread_sleep.c"
+#include "plane.c"
+#include "queue.c"
 
 #define RANDOM_SEED 42
-
-struct Plane {
-  pthread_t id;
-  // arrival time, lock condOD
-};
-
-struct Queue {
-  // capacity, size, front, rear, element_array
-};
 
 void *landing(void *thread_id) {
   printf("Created landing plane thread.\n");
