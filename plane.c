@@ -2,5 +2,5 @@
 #include <stdlib.h>
 
 struct Plane {
-
+  int id;
 };

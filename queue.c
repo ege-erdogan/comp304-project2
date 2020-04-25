@@ -9,17 +9,15 @@ struct Queue {
   int size;
   int head;
   int tail;
-  struct Plane *queue_array[];
+  struct Plane *queue_array[1024];
 };
 
-struct Queue *init(int capacity) {
-  struct Queue q;
-  q.capacity = capacity;
-  q.size = 0;
-  q.head = -1;
-  q.tail = -1;
-  q.queue_array[capacity];
-  return &q;
+void init(struct Queue *qptr, int capacity) {
+  qptr->capacity = 1024;
+  qptr->size = 0;
+  qptr->head = -1;
+  qptr->tail = -1;
+  // qptr->queue_array = struct Plane[capacity];
 }
 
 bool is_full(struct Queue *qptr) {
@@ -31,6 +29,9 @@ bool push(struct Queue *qptr, struct Plane *plane) {
     return false;
   } else {
     qptr->tail = (qptr->tail + 1) % qptr->capacity;
+    if (qptr->head == -1) {
+      qptr->head = 0;
+    }
     qptr->queue_array[qptr->tail] = plane;
     qptr->size++;
     return true;
@@ -41,7 +42,7 @@ struct Plane *pop(struct Queue *qptr) {
   if (qptr->head == -1) {
     return NULL;
   } else {
-    struct Plane *planeptr = &(qptr->queue_array[qptr->head]);
+    struct Plane *planeptr = qptr->queue_array[qptr->head];
     if (qptr->head == qptr->tail) {
       qptr->head = -1;
       qptr->tail = -1;
@@ -58,6 +59,6 @@ struct Plane *top(struct Queue *qptr) {
     return NULL;
   }
   else {
-    return &(qptr->queue_array[qptr->head]);
+    return qptr->queue_array[qptr->head];
   }
 }
