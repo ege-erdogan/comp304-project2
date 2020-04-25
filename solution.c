@@ -26,7 +26,15 @@ pthread_mutex_t mutex_departing;
 pthread_mutex_t landing_available_mutex;
 pthread_mutex_t departing_available_mutex;
 pthread_cond_t landing_available;
-pthread_cond_t departing_departing_available;
+pthread_cond_t departing_available;
+
+// helper methods
+
+void permit_plane(struct Plane *plane) {
+  pthread_mutex_lock(&(plane->mutex));
+  pthread_cond_signal(&(plane->available));
+  pthread_mutex_unlock(&(plane->mutex));
+}
 
 void *landing(void *thread_id) {
   struct Plane *plane = malloc(sizeof(*plane));
@@ -35,8 +43,9 @@ void *landing(void *thread_id) {
 
   pthread_mutex_lock(&mutex_landing);
   plane->id = next_id++;
-  printf("%d\tQUEUED %d\n", time(NULL) % start_time, plane->id);
+
   bool result = push(landing_queue, plane);
+  printf("%d\tLANDING\n", time(NULL) % start_time);
   if (result == false) {
     printf("Couldn't add plane to landing queue. Queue was full.\n");
   }
@@ -51,9 +60,9 @@ void *landing(void *thread_id) {
   pthread_mutex_lock(&(plane->mutex));
   pthread_cond_wait(&(plane->available), &(plane->mutex));
   // plane lands (do nothing)
+  printf("%d\t\tLANDING\n", time(NULL) % start_time);
   pthread_mutex_unlock(&(plane->mutex));
 
-  printf("%d\t\tLANDED %d\n", time(NULL) % start_time, plane->id);
   pthread_exit(0);
 }
 
@@ -64,25 +73,26 @@ void *departing(void *thread_id) {
 
   pthread_mutex_lock(&mutex_departing);
   plane->id = -1 * next_id++; // departing plane ids are negative
-  printf("%d\tQUEUED %d\n", time(NULL) % start_time, plane->id);
+
   bool result = push(departing_queue, plane);
+  printf("%d\tDEPARTING\n", time(NULL) % start_time);
   if (!result) {
     printf("Couldn't push plane to departing queue. Queue was full.\n");
   }
   if (plane->id == -1) {
     //  this was the first plane
     pthread_mutex_lock(&departing_available_mutex);
-    pthread_cond_wait(&departing_available);
+    pthread_cond_wait(&departing_available, &departing_available_mutex);
     pthread_mutex_unlock(&departing_available_mutex);
   }
   pthread_mutex_unlock(&mutex_departing);
 
   pthread_mutex_lock(&(plane->mutex));
-  pthread_cond_wait(&(plane->available));
+  pthread_cond_wait(&(plane->available), &(plane->mutex));
   // plane departs (do nothing)
+  printf("%d\t\tDEPARTING.\n", time(NULL) % start_time);
   pthread_mutex_unlock(&(plane->mutex));
 
-  printf("%d\t\tDEPARTED %d\n", time(NULL) % start_time, plane->id);
   pthread_exit(0);
 }
 
@@ -93,19 +103,21 @@ void *traffic_control(void *thread_id) {
 
   time_t current_time = time(NULL);
   while (current_time < start_time + total_sim_time) {
-    pthread_mutex_lock(&mutex_landing);
+    //pthread_mutex_lock(&mutex_landing);
+    //pthread_mutex_lock(&mutex_departing);
     if (landing_queue->size > 0) {
       struct Plane *plane = pop(landing_queue);
-      pthread_mutex_lock(&(plane->mutex));
-      pthread_cond_signal(&(plane->available));
-      pthread_mutex_unlock(&(plane->mutex));
+      permit_plane(plane);
       pthread_sleep(2);
-    } else {
-      // depart first plane in departing queue
+    } else if (departing_queue->size > 0){
+      struct Plane *plane = pop(departing_queue);
+      permit_plane(plane);
+      pthread_sleep(2);
     }
-    pthread_mutex_unlock(&mutex_landing);
+    //pthread_mutex_unlock(&mutex_departing);
+    //pthread_mutex_unlock(&mutex_landing);
+    //pthread_sleep(1);
 
-    //    pthread_sleep(1);
     current_time = time(NULL);
   }
   pthread_mutex_unlock(&landing_available_mutex);
@@ -167,9 +179,10 @@ int main (int argc, char *argv[]) {
     }
     if (random <= 1 - p) {
       // departing plane arrives
-      //pthread_t departing_id;
-      //pthread_create(&departing_id, NULL, departing, argv[1]);
+      pthread_t departing_tid;
+      pthread_create(&departing_id, NULL, departing, argv[1]);
     }
+
     pthread_sleep(1);
     current_time = time(NULL);
   }

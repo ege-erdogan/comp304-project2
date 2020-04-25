@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define CAPACITY 1024
+#define CAPACITY 30
 
 struct Queue {
   int capacity;
@@ -67,4 +67,13 @@ struct Plane *top(struct Queue *qptr) {
   else {
     return qptr->queue_array[qptr->head];
   }
+}
+
+void print_queue(struct Queue *queue) {
+  int size = queue->size;
+  printf("[");
+  for (int i = 0; i < size; i++) {
+    printf("%d, ", queue->queue_array[i]->id);
+  }
+  printf("]\n");
 }
