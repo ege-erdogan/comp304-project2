@@ -1,4 +1,3 @@
-- queue structure
 - initialize mutex, conds variables
 - write internals of
         - landing
@@ -8,5 +7,3 @@
 notes
   - plane arrivel time will be required for later
   - why do planes have cond and lock fields?
-  - the queue will have a fixed capacity
-    - can use circular queue based on an array

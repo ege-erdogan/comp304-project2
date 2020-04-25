@@ -2,22 +2,28 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "plane.c"
+#define CAPACITY 1024
 
 struct Queue {
   int capacity;
   int size;
   int head;
   int tail;
-  struct Plane *queue_array[1024];
+  struct Plane *queue_array[CAPACITY];
 };
 
-void init(struct Queue *qptr, int capacity) {
-  qptr->capacity = 1024;
+struct Plane {
+  int id;
+  pthread_cond_t available;
+  pthread_mutex_t mutex;
+};
+
+// initiate with fixed capacity of 1024
+void init(struct Queue *qptr) {
+  qptr->capacity = CAPACITY;
   qptr->size = 0;
   qptr->head = -1;
   qptr->tail = -1;
-  // qptr->queue_array = struct Plane[capacity];
 }
 
 bool is_full(struct Queue *qptr) {
