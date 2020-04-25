@@ -53,15 +53,37 @@ void *landing(void *thread_id) {
   // plane lands (do nothing)
   pthread_mutex_unlock(&(plane->mutex));
 
-  printf("%d\t\t\tLANDED %d\n", time(NULL) % start_time, plane->id);
+  printf("%d\t\tLANDED %d\n", time(NULL) % start_time, plane->id);
   pthread_exit(0);
 }
 
 void *departing(void *thread_id) {
-  // enqueue the plane to departing queue
-  // notify atc if this is the first plane
-  // wait for signal from the atc
-  // exit
+  struct Plane *plane = malloc(sizeof(*plane));
+  pthread_cond_init(&(plane->available), NULL);
+  pthread_mutex_init(&(plane->mutex), NULL);
+
+  pthread_mutex_lock(&mutex_departing);
+  plane->id = -1 * next_id++; // departing plane ids are negative
+  printf("%d\tQUEUED %d\n", time(NULL) % start_time, plane->id);
+  bool result = push(departing_queue, plane);
+  if (!result) {
+    printf("Couldn't push plane to departing queue. Queue was full.\n");
+  }
+  if (plane->id == -1) {
+    //  this was the first plane
+    pthread_mutex_lock(&departing_available_mutex);
+    pthread_cond_wait(&departing_available);
+    pthread_mutex_unlock(&departing_available_mutex);
+  }
+  pthread_mutex_unlock(&mutex_departing);
+
+  pthread_mutex_lock(&(plane->mutex));
+  pthread_cond_wait(&(plane->available));
+  // plane departs (do nothing)
+  pthread_mutex_unlock(&(plane->mutex));
+
+  printf("%d\t\tDEPARTED %d\n", time(NULL) % start_time, plane->id);
+  pthread_exit(0);
 }
 
 void *traffic_control(void *thread_id) {
@@ -77,7 +99,6 @@ void *traffic_control(void *thread_id) {
       pthread_mutex_lock(&(plane->mutex));
       pthread_cond_signal(&(plane->available));
       pthread_mutex_unlock(&(plane->mutex));
-      printf("%d\t\tAPPROVED %d\n", time(NULL) % start_time, plane->id);
       pthread_sleep(2);
     } else {
       // depart first plane in departing queue
