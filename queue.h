@@ -55,7 +55,7 @@ struct Plane *pop(struct Queue *qptr) {
     } else {
       qptr->head = (qptr->head + 1) % qptr->capacity;
     }
-    qptr->size -= 1;
+    qptr->size--;
     return planeptr;
   }
 }

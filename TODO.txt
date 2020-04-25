@@ -1,9 +1,5 @@
-- initialize mutex, conds variables
-- write internals of
-        - landing
-        - departing
-        - traffic control
+check the mutex relations between the atc thread and the landing plane thread
+  there might be a problem with the landing_queue, hence the seg fault
 
-notes
-  - plane arrivel time will be required for later
-  - why do planes have cond and lock fields?
+once landing plane works correctly
+  extend to departing plane
