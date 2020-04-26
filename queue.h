@@ -74,4 +74,12 @@ struct Plane *top(struct Queue *qptr) {
   }
 }
 
+void print_queue(struct Queue *queue) {
+  int size = queue->size;
+  for (int i = 0; i < size; i++) {
+    int index = (i + queue->head) % queue->capacity;
+    printf("%d ", queue->queue_array[index]->id);
+  }
+}
+
 #endif // QUEUE_H
