@@ -4,6 +4,9 @@
 
 #define CAPACITY 30
 
+#ifndef QUEUE_H
+#define QUEUE_H
+
 struct Queue {
   int capacity;
   int size;
@@ -14,6 +17,9 @@ struct Queue {
 
 struct Plane {
   int id;
+  char status; // L for landing, D for departing, E for emergency
+  int request_time;
+  int completed_time;
   pthread_cond_t available;
   pthread_mutex_t mutex;
 };
@@ -63,17 +69,9 @@ struct Plane *pop(struct Queue *qptr) {
 struct Plane *top(struct Queue *qptr) {
   if (qptr->head == -1) {
     return NULL;
-  }
-  else {
+  } else {
     return qptr->queue_array[qptr->head];
   }
 }
 
-void print_queue(struct Queue *queue) {
-  int size = queue->size;
-  printf("[");
-  for (int i = 0; i < size; i++) {
-    printf("%d, ", queue->queue_array[i]->id);
-  }
-  printf("]\n");
-}
+#endif // QUEUE_H
