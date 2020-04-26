@@ -18,6 +18,8 @@ struct Queue {
 struct Plane {
   int id;
   char status; // L for landing, D for departing, E for emergency
+  int request_time;
+  int completed_time;
   pthread_cond_t available;
   pthread_mutex_t mutex;
 };
