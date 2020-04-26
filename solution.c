@@ -49,8 +49,9 @@ void *landing(void *thread_id) {
   plane->status = 'L';
   plane->request_time = time(NULL) % start_time;
 
+  log_plane_arrival(plane);
+
   bool result = push(landing_queue, plane);
-  printf("%d\tLANDING\n", time(NULL) % start_time);
   if (result == false) {
     printf("Couldn't add plane to landing queue. Queue was full.\n");
   }
@@ -66,7 +67,7 @@ void *landing(void *thread_id) {
   pthread_cond_wait(&(plane->available), &(plane->mutex));
   // plane lands
   plane->completed_time = time(NULL) % start_time;
-  log_plane(plane);
+  log_plane_approval(plane);
   pthread_mutex_unlock(&(plane->mutex));
 
   pthread_exit(0);
@@ -83,8 +84,9 @@ void *departing(void *thread_id) {
   plane->status = 'D';
   plane->request_time = time(NULL) % start_time;
 
+  log_plane_arrival(plane);
+
   bool result = push(departing_queue, plane);
-  printf("%d\tDEPARTING\n", time(NULL) % start_time);
   if (!result) {
     printf("Couldn't push plane to departing queue. Queue was full.\n");
   }
@@ -100,7 +102,7 @@ void *departing(void *thread_id) {
   pthread_cond_wait(&(plane->available), &(plane->mutex));
   // plane departs
   plane->completed_time = time(NULL) % start_time;
-  log_plane(plane);
+  log_plane_approval(plane);
   pthread_mutex_unlock(&(plane->mutex));
 
   pthread_exit(0);
@@ -142,7 +144,7 @@ int main (int argc, char *argv[]) {
   departing_queue = malloc(sizeof(*departing_queue));
   init(landing_queue);
   init(departing_queue);
-  init_log_file();
+  init_logs();
 
   pthread_mutex_init(&landing_available_mutex, NULL);
   pthread_mutex_init(&departing_available_mutex, NULL);
