@@ -119,7 +119,7 @@ void *traffic_control(void *thread_id) {
   pthread_cond_wait(&landing_available, &landing_available_mutex);
 
   while (seconds() < total_sim_time) {
-    if (landing_queue->size > 0) {
+    if (landing_queue->size > 0 && departing_queue->size < 5) {
       struct Plane *plane = pop(landing_queue);
       permit_plane(plane);
       pthread_sleep(2);
