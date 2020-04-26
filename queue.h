@@ -4,6 +4,9 @@
 
 #define CAPACITY 30
 
+#ifndef QUEUE_H
+#define QUEUE_H
+
 struct Queue {
   int capacity;
   int size;
@@ -68,3 +71,5 @@ struct Plane *top(struct Queue *qptr) {
     return qptr->queue_array[qptr->head];
   }
 }
+
+#endif // QUEUE_H

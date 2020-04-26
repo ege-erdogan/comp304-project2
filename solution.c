@@ -33,7 +33,6 @@ pthread_cond_t departing_available;
 // helper methods
 
 void permit_plane(struct Plane *plane) {
-  do_something(plane);
   pthread_mutex_lock(&(plane->mutex));
   pthread_cond_signal(&(plane->available));
   pthread_mutex_unlock(&(plane->mutex));
