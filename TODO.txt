@@ -1,5 +1,0 @@
-check the mutex relations between the atc thread and the landing plane thread
-  there might be a problem with the landing_queue, hence the seg fault
-
-once landing plane works correctly
-  extend to departing plane

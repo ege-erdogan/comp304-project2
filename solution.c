@@ -8,13 +8,15 @@
 #include "pthread_sleep.c"
 
 #include "queue.h"
+#include "logging.h"
 
 #define RANDOM_SEED 42
 
 struct Queue *landing_queue;
 struct Queue *departing_queue;
 
-int next_id = 1;
+int next_landing_id = 2;
+int next_departing_id = 1;
 int total_sim_time;
 double p;
 time_t start_time;
@@ -31,6 +33,7 @@ pthread_cond_t departing_available;
 // helper methods
 
 void permit_plane(struct Plane *plane) {
+  do_something(plane);
   pthread_mutex_lock(&(plane->mutex));
   pthread_cond_signal(&(plane->available));
   pthread_mutex_unlock(&(plane->mutex));
@@ -42,14 +45,16 @@ void *landing(void *thread_id) {
   pthread_mutex_init(&(plane->mutex), NULL);
 
   pthread_mutex_lock(&mutex_landing);
-  plane->id = next_id++;
+  plane->id = next_landing_id;
+  next_landing_id += 2;
+  plane->status = 'L';
 
   bool result = push(landing_queue, plane);
   printf("%d\tLANDING\n", time(NULL) % start_time);
   if (result == false) {
     printf("Couldn't add plane to landing queue. Queue was full.\n");
   }
-  if (plane->id == 1) {
+  if (plane->id == 2) {
     // this was the first plane
     pthread_mutex_lock(&landing_available_mutex);
     pthread_cond_signal(&landing_available);
@@ -72,14 +77,16 @@ void *departing(void *thread_id) {
   pthread_mutex_init(&(plane->mutex), NULL);
 
   pthread_mutex_lock(&mutex_departing);
-  plane->id = -1 * next_id++; // departing plane ids are negative
+  plane->id = next_departing_id;
+  next_departing_id += 2;
+  plane->status = 'D';
 
   bool result = push(departing_queue, plane);
   printf("%d\tDEPARTING\n", time(NULL) % start_time);
   if (!result) {
     printf("Couldn't push plane to departing queue. Queue was full.\n");
   }
-  if (plane->id == -1) {
+  if (plane->id == 1) {
     //  this was the first plane
     pthread_mutex_lock(&departing_available_mutex);
     pthread_cond_wait(&departing_available, &departing_available_mutex);
