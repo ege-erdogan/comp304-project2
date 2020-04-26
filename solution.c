@@ -10,7 +10,8 @@
 #include "queue.h"
 #include "logging.h"
 
-#define RANDOM_SEED 42
+#define RANDOM_SEED         42
+#define MAX_CONSEC_DEPARTS  2
 
 struct Queue *landing_queue;
 struct Queue *departing_queue;
@@ -118,14 +119,18 @@ void *traffic_control(void *thread_id) {
   pthread_mutex_lock(&landing_available_mutex);
   pthread_cond_wait(&landing_available, &landing_available_mutex);
 
+  int departs = 0;
+
   while (seconds() < total_sim_time) {
-    if (landing_queue->size > 0 && departing_queue->size < 5) {
+    if (landing_queue->size > 0 && (departs == MAX_CONSEC_DEPARTS || departing_queue->size < 5)) {
       struct Plane *plane = pop(landing_queue);
+      departs = 0;
       permit_plane(plane);
       pthread_sleep(2);
-    } else if (departing_queue->size > 0){
+    } else if (departing_queue->size > 0) {
       struct Plane *plane = pop(departing_queue);
       permit_plane(plane);
+      departs++;
       pthread_sleep(2);
     }
   }
