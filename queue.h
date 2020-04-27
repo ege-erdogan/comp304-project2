@@ -7,6 +7,7 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+// circular queue array implementation with fixed capacity.
 struct Queue {
   int capacity;
   int size;
@@ -24,7 +25,7 @@ struct Plane {
   pthread_mutex_t mutex;
 };
 
-// initiate with fixed capacity of 1024
+// initialize variables
 void init(struct Queue *qptr) {
   qptr->capacity = CAPACITY;
   qptr->size = 0;
@@ -63,14 +64,6 @@ struct Plane *pop(struct Queue *qptr) {
     }
     qptr->size--;
     return planeptr;
-  }
-}
-
-struct Plane *top(struct Queue *qptr) {
-  if (qptr->head == -1) {
-    return NULL;
-  } else {
-    return qptr->queue_array[qptr->head];
   }
 }
 

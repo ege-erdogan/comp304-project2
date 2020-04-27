@@ -3,6 +3,9 @@
 
 #include "queue.h"
 
+// helper methods for logging
+
+// creates the log files and writes titles
 void init_logs() {
   FILE *fp = fopen("planes.log", "wb");
   fprintf(fp, "DEPARTED OR LANDED PLANES SORTED BY APPROVAL TIME\n\n");
@@ -15,6 +18,7 @@ void init_logs() {
   fclose(fp);
 }
 
+// to be called when a plane is approved to land/depart
 void log_plane_approval(struct Plane *plane) {
   FILE *fp = fopen("planes.log", "a");
   fprintf(fp, "%d\t%c\t%d\t%d\t%d\n", plane->id, plane->status, plane->request_time,
@@ -22,6 +26,7 @@ void log_plane_approval(struct Plane *plane) {
   fclose(fp);
 }
 
+// to be called when a plane arrives
 void log_plane_arrival(struct Plane *plane) {
   FILE *fp = fopen("tower.log", "a");
   fprintf(fp, "%d\t%c\t%d\n", plane->id, plane->status, plane->request_time);
