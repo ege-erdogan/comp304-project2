@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define CAPACITY 30
+#define CAPACITY 1000
 
 #ifndef QUEUE_H
 #define QUEUE_H
