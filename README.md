@@ -10,7 +10,7 @@ My solution is divided into three modules:
 
 The first thing that the `main` method does is to parse the arguments: `-s` for total simulation time, `-p` for the probability of a landing plane arriving, and `-n` for when to display snapshots. They can be given in any order. 
 
-Then some variables are initialized and the ATC thread is created along with a landing plane and a departing plane. The plane-generating loop begins afterwards. 
+Then some variables are initialized and the ATC thread is created along with a landing plane and a departing plane. The plane-generating loop begins afterwards. Which type of plane to generate is decided by getting a random number from the `rand()` method, dividing it by the `RAND_MAX` constant to get a number between 0 and 1, and finally comparing it with teh `p` parameter provided. A landing plane arrives with probability `p`, and a departing plane arrives with probability `1-p`. Both types of planes can arrive simultaneously as well. 
 
 ### Locks, Condition Variables and Other Structures
 
@@ -38,7 +38,7 @@ if (emergency_queue->size > 0) {
 
 Outline of the ATC code to implement the logic above. `departs`  is a local variable to keep track of consecutive departing planes. 
 
-The maximum consecutive departing planes constraint is added to avoid starvation of landing planes. Without that, when the arrival rate of departing planes is larger than their approval rate, the queue never shrinks and a landing plane is never allowed to land. This extra contraint makes sure that a landing plane is allowed to land no matter how many planes are waiting to depart. The number can be changed by modifying the `MAX_CONSEC_DEPARTS` constant. Any value would avoid starvation, but a value too large could increase the waiting time of landing planes to undesired levels. 
+The maximum consecutive departing planes constraint is added to avoid starvation of landing planes. Without that, when the arrival rate of departing planes is larger than their approval rate, the queue keeps increasing in size and never goes below 5. In that case, a landing plane is never allowed to land. This extra contraint makes sure that a landing plane is allowed to land no matter how many planes are waiting to depart. The number can be changed by modifying the `MAX_CONSEC_DEPARTS` constant. Any value would avoid starvation, but a value too large could increase the waiting time of landing planes to undesired levels. 
 
 ### Planes
 
@@ -56,6 +56,8 @@ struct Plane {
 Each plane is represented by the struct above in its own thread. Landing planes have even `id`s and departing planes have odd `id`s. The status char is L for landing, E for emergency, and D for departing planes. 
 
 In the `landing` and `departing` methods, first a `Plane` struct is created and its values are initialized according to the type of the plane. Then the thread waits to acquire the lock for its respective queue, pushes the plane into the queue, and starts waiting for the signal from the ATC thread.
+
+An emergency landing is disinguished from a regular landing by passing an argument to the `landing` method when creating the thread. If `emergency` is true, an emergency landing is created. Another solution would be to write a new method to be called when the emergency landing thread is created, but passing an argument is more efficient since a large part of the code is the same for emergency and regular landings.
 
 ### Queue
 
@@ -76,16 +78,3 @@ I implemented a fixed-size FIFO queue with a circular array in the `queue.h` fil
 ### Logging
 
 The helper methods to keep logs are found in the file `logging.h`. I kept two different log files, `planes.log` and `tower.log`. A plane is logged to `planes.log` when it is approved to land/depart, and to `tower.log` when it arrives. So in the end, `tower.log` keeps a history of all the planes with their IDs, arrival times, and types, sorted by arrival time. `planes.log` keeps a history of all planes that has landed or departed, sorted by their approval times. 
-
-
-
-
-
-
-
-
-
-
-
-
-
