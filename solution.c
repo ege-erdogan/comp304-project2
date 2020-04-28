@@ -24,28 +24,41 @@ int snapshot_time;
 double p;
 time_t start_time;
 
-// to prevent race conditions on landing & departing queues
+// each queue has a lock to prevent race conditions on that queue
 pthread_mutex_t mutex_landing;
 pthread_mutex_t mutex_departing;
 pthread_mutex_t mutex_emergency;
 
+// mutex, cond. variable pair for the first planes to signal the ATC.
 pthread_mutex_t landing_available_mutex;
 pthread_mutex_t departing_available_mutex;
 pthread_cond_t landing_available;
 pthread_cond_t departing_available;
 
-// helper methods
+// helper methods to avoid repetitive code
 
+// returns no. of seconds since start
+int seconds() {
+  return time(NULL) % start_time;
+}
+
+// used by ATC to signal a plane to land/depart
 void permit_plane(struct Plane *plane) {
   pthread_mutex_lock(&(plane->mutex));
   pthread_cond_signal(&(plane->available));
   pthread_mutex_unlock(&(plane->mutex));
 }
 
-int seconds() {
-  return time(NULL) % start_time;
+// called by planes to wait
+void wait_for_signal(struct Plane *plane) {
+  pthread_mutex_lock(&(plane->mutex));
+  pthread_cond_wait(&(plane->available), &(plane->mutex));
+  plane->completed_time = seconds();
+  log_plane_approval(plane);
+  pthread_mutex_unlock(&(plane->mutex));
 }
 
+// emergency attribute is true if emergency landing
 void *landing(void *emergency) {
   struct Plane *plane = malloc(sizeof(*plane));
   pthread_cond_init(&(plane->available), NULL);
@@ -53,7 +66,6 @@ void *landing(void *emergency) {
 
   bool emergency_landing = (bool*) emergency;
   if (emergency_landing) {
-    // emergency landing
     pthread_mutex_lock(&mutex_emergency);
     plane->id = next_landing_id;
     next_landing_id += 2;
@@ -61,12 +73,10 @@ void *landing(void *emergency) {
     plane->request_time = seconds();
 
     log_plane_arrival(plane);
-
-    push (emergency_queue, plane);
+    push(emergency_queue, plane);
 
     pthread_mutex_unlock(&mutex_emergency);
-  } else {
-    // regular landing
+  } else { // regular landing
     pthread_mutex_lock(&mutex_landing);
     plane->id = next_landing_id;
     next_landing_id += 2;
@@ -74,32 +84,28 @@ void *landing(void *emergency) {
     plane->request_time = seconds();
 
     log_plane_arrival(plane);
-
     push(landing_queue, plane);
+
     if (plane->id == 2) {
-      // this was teh first plane
+      // this was the first plane. should signal the atc
       pthread_mutex_lock(&landing_available_mutex);
       pthread_cond_signal(&landing_available);
       pthread_mutex_unlock(&landing_available_mutex);
     }
+
     pthread_mutex_unlock(&mutex_landing);
   }
 
-  pthread_mutex_lock(&(plane->mutex));
-  pthread_cond_wait(&(plane->available), &(plane->mutex));
-  // plane lands
-  plane->completed_time = seconds();
-  log_plane_approval(plane);
-  pthread_mutex_unlock(&(plane->mutex));
-
+  wait_for_signal(plane);
   pthread_exit(0);
 }
 
-void *departing(void *thread_id) {
+void *departing() {
   struct Plane *plane = malloc(sizeof(*plane));
   pthread_cond_init(&(plane->available), NULL);
   pthread_mutex_init(&(plane->mutex), NULL);
 
+  // acquire the lock to modify the departing queue
   pthread_mutex_lock(&mutex_departing);
   plane->id = next_departing_id;
   next_departing_id += 2;
@@ -107,49 +113,45 @@ void *departing(void *thread_id) {
   plane->request_time = seconds();
 
   log_plane_arrival(plane);
+  push(departing_queue, plane);
 
-  bool result = push(departing_queue, plane);
-  if (!result) {
-    printf("Couldn't push plane to departing queue. Queue was full.\n");
-  }
   if (plane->id == 1) {
-    //  this was the first plane
+    //  this was the first plane. signal the ATC.
     pthread_mutex_lock(&departing_available_mutex);
     pthread_cond_signal(&departing_available);
     pthread_mutex_unlock(&departing_available_mutex);
   }
+
+  // release the depating queue lock
   pthread_mutex_unlock(&mutex_departing);
 
-  pthread_mutex_lock(&(plane->mutex));
-  pthread_cond_wait(&(plane->available), &(plane->mutex));
-  // plane departs
-  plane->completed_time = seconds();
-  log_plane_approval(plane);
-  pthread_mutex_unlock(&(plane->mutex));
-
+  wait_for_signal(plane);
   pthread_exit(0);
 }
 
-void *traffic_control(void *thread_id) {
+void *traffic_control() {
   // wait for signal from first plane
   pthread_mutex_lock(&landing_available_mutex);
   pthread_cond_wait(&landing_available, &landing_available_mutex);
 
+  // local variable to keep track of consecutive departing planes
   int departs = 0;
 
   while (seconds() < total_sim_time) {
     if (emergency_queue->size > 0) {
+      // if there is an emergency flight, allow it to land.
       struct Plane *plane = pop(emergency_queue);
-      printf("ege\n");
       departs = 0;
       permit_plane(plane);
       pthread_sleep(2);
     } else if (landing_queue->size > 0 && (departs == MAX_CONSEC_DEPARTS || departing_queue->size < 5)) {
+      // allow landing plane when a certain number of consecutive departures has been reached, or there are < 5 planes in departing queue.
       struct Plane *plane = pop(landing_queue);
       departs = 0;
       permit_plane(plane);
       pthread_sleep(2);
     } else if (departing_queue->size > 0) {
+      // allow departing planes if above conditions don't hold and queue is not empty.
       struct Plane *plane = pop(departing_queue);
       permit_plane(plane);
       departs++;
@@ -163,7 +165,7 @@ void *traffic_control(void *thread_id) {
 
 int main (int argc, char *argv[]) {
 
-  // initialize variables
+  // initialize queues & logging
   landing_queue = malloc(sizeof(*landing_queue));
   departing_queue = malloc(sizeof(*departing_queue));
   emergency_queue = malloc(sizeof(*emergency_queue));
@@ -172,13 +174,14 @@ int main (int argc, char *argv[]) {
   init(emergency_queue);
   init_logs();
 
+  // initialize mutex and cond. variables
   pthread_mutex_init(&landing_available_mutex, NULL);
   pthread_mutex_init(&departing_available_mutex, NULL);
   pthread_mutex_init(&mutex_landing, NULL);
   pthread_mutex_init(&mutex_departing, NULL);
   pthread_mutex_init(&mutex_emergency, NULL);
 
-  // can perform more robust argument checking
+  // parse arguments
   if (argc != 7) {
     printf("Wrong arguements. Exiting.\n");
     return 1;
@@ -198,7 +201,7 @@ int main (int argc, char *argv[]) {
 
   // create ATC thread
   pthread_t atc_tid;
-  pthread_create(&atc_tid, NULL, traffic_control, argv[1]);
+  pthread_create(&atc_tid, NULL, traffic_control, NULL);
 
   // create first landing plane thread
   pthread_t landing_id;
@@ -207,7 +210,7 @@ int main (int argc, char *argv[]) {
 
   // create first departing plane thread
   pthread_t departing_id;
-  pthread_create(&departing_id, NULL, departing, argv[1]);
+  pthread_create(&departing_id, NULL, departing, NULL);
 
   srand(RANDOM_SEED);
 
@@ -222,7 +225,7 @@ int main (int argc, char *argv[]) {
     if (random <= 1 - p) {
       // departing plane arrives
       pthread_t departing_id;
-      pthread_create(&departing_id, NULL, departing, argv[1]);
+      pthread_create(&departing_id, NULL, departing, NULL);
     }
     if (seconds() % 40 == 0 && seconds() != 0) {
       // emergency landing plane arrives
