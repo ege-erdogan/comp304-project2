@@ -1,3 +1,8 @@
+/*
+  Ege Erdogan 64004
+  COMP 304 Project 2
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -35,9 +40,9 @@ pthread_mutex_t departing_available_mutex;
 pthread_cond_t landing_available;
 pthread_cond_t departing_available;
 
-// helper methods to avoid repetitive code
+// helper methods to avoid repeating code
 
-// returns no. of seconds since start
+// returns no. of seconds since starting the simulation
 int seconds() {
   return time(NULL) % start_time;
 }

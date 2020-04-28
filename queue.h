@@ -1,3 +1,8 @@
+/*
+  Ege Erdogan 64004
+  COMP 304 Project 2
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
