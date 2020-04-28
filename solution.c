@@ -165,22 +165,6 @@ void *traffic_control() {
 
 int main (int argc, char *argv[]) {
 
-  // initialize queues & logging
-  landing_queue = malloc(sizeof(*landing_queue));
-  departing_queue = malloc(sizeof(*departing_queue));
-  emergency_queue = malloc(sizeof(*emergency_queue));
-  init(landing_queue);
-  init(departing_queue);
-  init(emergency_queue);
-  init_logs();
-
-  // initialize mutex and cond. variables
-  pthread_mutex_init(&landing_available_mutex, NULL);
-  pthread_mutex_init(&departing_available_mutex, NULL);
-  pthread_mutex_init(&mutex_landing, NULL);
-  pthread_mutex_init(&mutex_departing, NULL);
-  pthread_mutex_init(&mutex_emergency, NULL);
-
   // parse arguments
   if (argc != 7) {
     printf("Wrong arguements. Exiting.\n");
@@ -196,6 +180,22 @@ int main (int argc, char *argv[]) {
       }
     }
   }
+
+  // initialize queues & logging
+  landing_queue = malloc(sizeof(*landing_queue));
+  departing_queue = malloc(sizeof(*departing_queue));
+  emergency_queue = malloc(sizeof(*emergency_queue));
+  init(landing_queue);
+  init(departing_queue);
+  init(emergency_queue);
+  init_logs();
+
+  // initialize mutex and cond. variables
+  pthread_mutex_init(&landing_available_mutex, NULL);
+  pthread_mutex_init(&departing_available_mutex, NULL);
+  pthread_mutex_init(&mutex_landing, NULL);
+  pthread_mutex_init(&mutex_departing, NULL);
+  pthread_mutex_init(&mutex_emergency, NULL);
 
   start_time = time(NULL);
 
